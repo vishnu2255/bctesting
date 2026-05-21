@@ -1,0 +1,21 @@
+{
+  "name": "bctesting",
+  "version": "1.0.0",
+  "description": "BC Registries UI Regression Tests using Playwright",
+  "scripts": {
+    "test": "playwright test",
+    "test:auth": "playwright test tests/auth/",
+    "test:account": "playwright test tests/account/",
+    "test:dashboard": "playwright test tests/dashboard/",
+    "test:business": "playwright test tests/business/",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "report": "playwright show-report",
+    "codegen": "playwright codegen https://test.account.bcregistry.gov.bc.ca/"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^20.19.41",
+    "dotenv": "^16.6.1"
+  }
+}
