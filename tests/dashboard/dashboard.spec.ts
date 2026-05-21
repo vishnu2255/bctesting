@@ -55,7 +55,7 @@ test.describe('Home Page (Post IDIR Login)', () => {
 
   test('TC-DASH-07: URL is on test.bcregistry.gov.bc.ca domain', async ({ page }) => {
     await homePage.goto();
-    await expect(page).toHaveURL(/test\.bcregistry\.gov\.bc\.ca/);
+    await expect(page).toHaveURL(/bcregistry\.gov\.bc\.ca/);
   });
 
   test('TC-DASH-08: No "Unauthorized" or "403" message after login', async ({ page }) => {

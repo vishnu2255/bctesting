@@ -8,7 +8,7 @@ import { Page, expect } from '@playwright/test';
  */
 export class HomePage {
   readonly page: Page;
-  readonly url = 'https://test.bcregistry.gov.bc.ca/en-CA/';
+  readonly url = 'https://test.bcregistry.gov.bc.ca/en-CA/';  // or test.account.bcregistry.gov.bc.ca after IDIR
 
   constructor(page: Page) {
     this.page = page;
@@ -46,7 +46,7 @@ export class HomePage {
   // ── Assertions ───────────────────────────────────────────────────────────
 
   async assertHomePageLoaded() {
-    await expect(this.page).toHaveURL(/test\.bcregistry\.gov\.bc\.ca\/en-CA/);
+    await expect(this.page).toHaveURL(/bcregistry\.gov\.bc\.ca\//en-CA/);
     await expect(this.page).toHaveTitle(/BC Registries/i);
   }
 

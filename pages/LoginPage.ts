@@ -67,7 +67,7 @@ export class LoginPage {
   }
 
   async waitForRedirectBackToRegistry() {
-    await this.page.waitForURL(/test\.bcregistry\.gov\.bc\.ca/, { timeout: 30_000 });
+    await this.page.waitForURL(/bcregistry\.gov\.bc\.ca/, { timeout: 30_000 });
     await this.page.waitForLoadState('networkidle');
   }
 

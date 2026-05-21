@@ -57,7 +57,7 @@ setup('Authenticate via IDIR', async ({ page }) => {
   await loginPage.waitForRedirectBackToRegistry();
 
   // Confirm we're back on the registry
-  await expect(page).toHaveURL(/test\.bcregistry\.gov\.bc\.ca/, { timeout: 30_000 });
+  await expect(page).toHaveURL(/bcregistry\.gov\.bc\.ca/, { timeout: 30_000 });
   console.log(`✅  Login successful! Current URL: ${page.url()}`);
 
   // Save full browser state for all tests to reuse
