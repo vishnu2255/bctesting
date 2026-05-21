@@ -1,18 +1,22 @@
 import { Page, expect } from '@playwright/test';
 
 /**
- * LoginPage
- * Handles BC Registries login via IDIR (BC Government employees).
+ * LoginPage — test.bcregistry.gov.bc.ca/en-CA/login
  *
- * Flow:
- *   1. https://test.bcregistry.gov.bc.ca/en-CA/login
- *   2. Click "Login with IDIR"
- *   3. Redirect → logon.gov.bc.ca (IDIR IdP)
- *   4. Enter IDIR username + password
- *   5. Redirect back → home page
+ * DOM (verified from live page source):
+ *   h1: "BC Registries Account Login"
+ *   button[0]: "Login with BC Services Card"  (filled blue)
+ *   button[1]: "Login with BCeID"             (outlined)
+ *   button[2]: "Login with IDIR"              (outlined)
+ *
+ * IDIR SSO page — logontest7.gov.bc.ca:
+ *   input#user        → IDIR Username
+ *   input#password    → Password
+ *   input[value="Continue"] → Submit
  */
 export class LoginPage {
   readonly page: Page;
+  readonly url = 'https://test.bcregistry.gov.bc.ca/en-CA/login';
 
   constructor(page: Page) {
     this.page = page;
@@ -21,63 +25,90 @@ export class LoginPage {
   // ── Navigation ───────────────────────────────────────────────────────────
 
   async goto() {
-    await this.page.goto('https://test.bcregistry.gov.bc.ca/en-CA/login');
+    await this.page.goto(this.url);
     await this.page.waitForLoadState('networkidle');
   }
 
-  // ── IDIR Login ───────────────────────────────────────────────────────────
+  // ── Login page actions ───────────────────────────────────────────────────
 
   async clickLoginWithIDIR() {
-    // "Login with IDIR" button on the BC Registries login page
-    const idirBtn = this.page
-      .getByRole('button', { name: /IDIR/i })
-      .or(this.page.getByRole('link', { name: /IDIR/i }))
-      .or(this.page.locator('[data-test="idir-login-btn"]'))
-      .or(this.page.locator('a[href*="idir"], button:has-text("IDIR")'));
-
-    await idirBtn.first().waitFor({ state: 'visible', timeout: 15_000 });
-    await idirBtn.first().click();
+    // Exact text from DOM: "Login with IDIR"
+    await this.page.getByRole('button', { name: 'Login with IDIR' }).click();
   }
 
-  async fillIDIRCredentials(username: string, password: string) {
-    // Redirected to BC Gov IDIR SSO (logon.gov.bc.ca or similar)
-    await this.page.waitForURL(/logon\.gov\.bc\.ca|loginproxy\.gov\.bc\.ca|oidc\.gov\.bc\.ca/, {
-      timeout: 30_000,
-    });
-
-    await this.page.getByLabel(/User ID|Username|IDIR Username/i).fill(username);
-    await this.page.getByLabel(/Password/i).fill(password);
-    await this.page.getByRole('button', { name: /Continue|Sign In|Login/i }).click();
+  async clickLoginWithBCeID() {
+    await this.page.getByRole('button', { name: 'Login with BCeID' }).click();
   }
 
-  async waitForHomePageAfterLogin() {
-    // Redirect back to BC Registries after successful IDIR auth
+  async clickLoginWithBCServicesCard() {
+    await this.page.getByRole('button', { name: 'Login with BC Services Card' }).click();
+  }
+
+  // ── IDIR SSO page (logontest7.gov.bc.ca) ─────────────────────────────────
+
+  async waitForIDIRSSOPage() {
+    await this.page.waitForURL(/logontest7\.gov\.bc\.ca/, { timeout: 30_000 });
+    await this.page.waitForLoadState('domcontentloaded');
+  }
+
+  async fillIDIRUsername(username: string) {
+    // DOM: <input name="user" id="user" class="form-control">
+    await this.page.locator('#user').fill(username);
+  }
+
+  async fillIDIRPassword(password: string) {
+    // DOM: <input name="password" id="password" class="form-control">
+    await this.page.locator('#password').fill(password);
+  }
+
+  async clickContinue() {
+    // DOM: <input type="submit" value="Continue" class="btn btn-primary">
+    await this.page.locator('input[value="Continue"]').click();
+  }
+
+  async waitForRedirectBackToRegistry() {
     await this.page.waitForURL(/test\.bcregistry\.gov\.bc\.ca/, { timeout: 30_000 });
     await this.page.waitForLoadState('networkidle');
   }
 
-  /**
-   * Full IDIR login in one call — use this in auth.setup.ts
-   */
+  // ── Full IDIR login flow (one call) ──────────────────────────────────────
+
   async loginWithIDIR(username: string, password: string) {
     await this.goto();
     await this.clickLoginWithIDIR();
-    await this.fillIDIRCredentials(username, password);
-    await this.waitForHomePageAfterLogin();
+    await this.waitForIDIRSSOPage();
+    await this.fillIDIRUsername(username);
+    await this.fillIDIRPassword(password);
+    await this.clickContinue();
+    await this.waitForRedirectBackToRegistry();
   }
 
   // ── Assertions ───────────────────────────────────────────────────────────
 
-  async assertLoginPageVisible() {
+  async assertLoginPageLoaded() {
     await expect(this.page).toHaveURL(/\/en-CA\/login/);
-    // IDIR button must be present
-    const idirBtn = this.page.getByRole('button', { name: /IDIR/i })
-      .or(this.page.getByRole('link', { name: /IDIR/i }));
-    await expect(idirBtn.first()).toBeVisible({ timeout: 10_000 });
+    await expect(this.page.getByRole('heading', { name: 'BC Registries Account Login' })).toBeVisible();
   }
 
   async assertIDIRButtonVisible() {
-    const idirEl = this.page.getByText(/IDIR/i).first();
-    await expect(idirEl).toBeVisible({ timeout: 10_000 });
+    await expect(this.page.getByRole('button', { name: 'Login with IDIR' })).toBeVisible();
+  }
+
+  async assertAllLoginOptionsVisible() {
+    await expect(this.page.getByRole('button', { name: 'Login with BC Services Card' })).toBeVisible();
+    await expect(this.page.getByRole('button', { name: 'Login with BCeID' })).toBeVisible();
+    await expect(this.page.getByRole('button', { name: 'Login with IDIR' })).toBeVisible();
+  }
+
+  async assertOnIDIRSSOPage() {
+    await expect(this.page).toHaveURL(/logontest7\.gov\.bc\.ca/);
+    // DOM: <label for="username">IDIR Username</label>
+    await expect(this.page.locator('#user')).toBeVisible();
+    await expect(this.page.locator('#password')).toBeVisible();
+  }
+
+  async assertIDIRSSOErrorShown() {
+    // DOM: <div class="bg-error"> shown on bad credentials
+    await expect(this.page.locator('.bg-error:not(.hidden)')).toBeVisible({ timeout: 10_000 });
   }
 }
